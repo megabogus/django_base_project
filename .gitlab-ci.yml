@@ -1,0 +1,189 @@
+image: docker:latest
+
+services:
+  - docker:dind
+
+variables:
+  SERVER_DOMAIN: example.ru
+  DEMO_APP_DOMAIN: demo.$SERVER_DOMAIN
+  DEMO_APP: example_demo_app
+  DEMO_DB: example_demo_db
+  DB_DEMO_NAME: example_db
+  APP_IMAGE: example:$CI_BUILD_REF_SLUG
+#$CI_REGISTRY_IMAGE:$CI_BUILD_REF_SLUG
+  SSH_PRIVATE_KEY: $SSH_PRIVATE_KEY
+  PROD_APP: example_prod_app
+  PROD_APP_DOMAIN: $SERVER_DOMAIN,127.0.0.1
+  DEMO_REDIS: example_demo_redis
+  PROD_REDIS: example_prod_redis
+  CORS_ORIGIN_WHITELIST: $CORS_ORIGIN_WHITELIST
+
+before_script:
+  - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+
+after_script:
+  - docker rmi $(docker images -f dangling=true -q)
+
+stages:
+  - build
+  - demo
+  - prod
+
+build:
+  stage: build
+  script:
+    - echo "image name is $APP_IMAGE"
+    - docker build
+        --pull
+        --tag $APP_IMAGE
+        --build-arg SSH_PRIVATE_KEY="$SSH_PRIVATE_KEY"
+        .
+demo:
+  stage: demo
+  only: 
+    - master
+  script:
+    - if [[ $(docker ps) == *$DEMO_APP* ]] ; then
+      docker stop $DEMO_APP
+      ; fi
+    - if [[ $(docker ps -a) == *$DEMO_APP* ]] ; then
+      docker rm $DEMO_APP
+      ; fi
+    - docker run
+        --detach
+        --restart always
+        -p 127.0.0.1:8001:80
+        -v /var/www/demo_example/media/:/var/www/app/media/
+        --link $DEMO_DB:db
+        --link $DEMO_REDIS:redis
+        --link postfix:postfix
+        --name $DEMO_APP
+        --env DJANGO_SETTINGS_MODULE=apps.settings.production
+        --env DEBUG=True
+        --env CORS_ORIGIN_WHITELIST=$CORS_ORIGIN_WHITELIST
+        --env ALLOWED_HOSTS=*
+        --env TELEGRAM_BOT_TOKEN=$DEMO_TELEGRAM_BOT_TOKEN
+        --env TELEGRAM_BOT_REG_TOKEN=$REG_TELEGRAM_BOT_TOKEN
+        --env SECRET_KEY=SADFdflksghkfjggdfgdfg45646dfgdfgdf
+        --env DB_BACKEND=django.db.backends.postgresql_psycopg2
+        --env DB_HOST=db
+        --env DB_PORT=$DB_DEMO_PORT
+        --env DB_USER=$DB_DEMO_USER
+        --env DB_PASS=$DB_DEMO_PASS
+        --env DB_NAME=$DB_DEMO_NAME
+        $APP_IMAGE
+
+prod:
+  stage: prod
+  when: manual
+  only:
+    - master
+  script:
+    - if [[ $(docker ps) == *$PROD_APP* ]] ; then
+      docker stop $PROD_APP
+      ; fi
+    - if [[ $(docker ps -a) == *$PROD_APP* ]] ; then
+      docker rm $PROD_APP
+      ; fi
+    - docker run
+        --detach
+        --restart always
+        -p 127.0.0.1:8002:80
+        -v /var/www/prod_example/media/:/var/www/app/media/
+        --link postfix:postfix
+        --link $PROD_REDIS:redis
+        --name $PROD_APP
+        --env DJANGO_SETTINGS_MODULE=apps.settings.production
+        --env DEBUG=False
+        --env CORS_ORIGIN_WHITELIST=$CORS_ORIGIN_WHITELIST
+        --env ALLOWED_HOSTS=*
+        --env TELEGRAM_BOT_TOKEN=$PROD_TELEGRAM_BOT_TOKEN
+        --env TELEGRAM_BOT_REG_TOKEN=$REG_TELEGRAM_BOT_TOKEN
+        --env SECRET_KEY=$SECRET_KEY
+        --env SENTRY_DSN=$SENTRY_DSN
+        --env DB_BACKEND=django.db.backends.postgresql_psycopg2
+        --env DB_HOST=$DB_HOST
+        --env DB_PORT=$DB_PORT
+        --env DB_USER=$DB_USER
+        --env DB_PASS=$DB_PASS
+        --env DB_NAME=$DB_NAME
+        $APP_IMAGE
+
+db_up:
+  stage: demo
+  when: manual
+  only: 
+    - master
+  script:
+    - docker run
+        --detach
+        --restart always
+        --name $DEMO_DB
+        --env POSTGRES_USER=$DB_DEMO_USER
+        --env POSTGRES_PASSWORD=$DB_DEMO_PASS
+        --env POSTGRES_DB=$DB_DEMO_DEMO_NAME
+        postgres:9.5
+
+db_down:
+  stage: demo
+  when: manual
+  only: 
+    - master
+  script:
+    - if [[ $(docker ps) == *$DEMO_DB* ]] ; then 
+        docker stop $DEMO_DB
+      ; fi
+    - if [[ $(docker ps -a) == *$DEMO_DB* ]] ; then 
+        docker rm $DEMO_DB
+      ; fi
+
+redis_up:
+  stage: demo
+  when: manual
+  only:
+    - master
+  script:
+    - docker run
+        --detach
+        --restart always
+        --name $DEMO_REDIS
+        redis:5.0
+
+redis_down:
+  stage: demo
+  when: manual
+  only:
+    - master
+  script:
+    - if [[ $(docker ps) == *$DEMO_REDIS* ]] ; then
+        docker stop $DEMO_REDIS
+      ; fi
+    - if [[ $(docker ps -a) == *$DEMO_REDIS* ]] ; then
+        docker rm $DEMO_REDIS
+      ; fi
+
+
+redis_up:
+  stage: prod
+  when: manual
+  only:
+    - master
+  script:
+    - docker run
+        --detach
+        --restart always
+        --name $PROD_REDIS
+        redis:5.0
+
+redis_down:
+  stage: prod
+  when: manual
+  only:
+    - master
+  script:
+    - if [[ $(docker ps) == *$PROD_REDIS* ]] ; then
+        docker stop $PROD_REDIS
+      ; fi
+    - if [[ $(docker ps -a) == *$PROD_REDIS* ]] ; then
+        docker rm $PROD_REDIS
+      ; fi

@@ -1,0 +1,15 @@
+{% load i18n %}
+{% autoescape off %}
+    {% blocktrans %}Вы успешно зарегистрировалист на {{ site_name }}.{% endblocktrans %}
+
+    {% blocktrans %}Пожалуйста для активации акаунта перейдите по ссылке:{% endblocktrans %}
+
+    {% block reset_link %}
+        {{ url }}
+    {% endblock %}
+
+    {% trans "Ваш email для входа:" %} {{ email }}
+
+    {% blocktrans %}Команда {{ site_name }}{% endblocktrans %}
+
+{% endautoescape %}

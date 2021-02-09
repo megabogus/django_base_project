@@ -1,0 +1,19 @@
+{% load i18n %}
+<html>
+<body>
+	<div class="content">
+    {% autoescape off %}
+        <p>{% blocktrans %}Вы успешно зарегистрировалист на сайте компании {{ site_name }}.{% endblocktrans %}</p>
+
+        <p>{% blocktrans %}Пожалуйста для активации акаунта перейдите по ссылке:{% endblocktrans %}</p>
+
+        <p><a href="{{ url }}">{{ url }}</a></p>
+
+        <p>{% trans "Ваш email для входа:" %} {{ email }}</p>
+
+        <p>{% blocktrans %}Команда {{ site_name }}{% endblocktrans %}</p>
+
+    {% endautoescape %}
+    </div>
+</body>
+</html>

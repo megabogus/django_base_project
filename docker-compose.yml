@@ -1,0 +1,53 @@
+version: "3"
+services:
+  db:
+    image: postgres:13.1
+    env_file: docker/.dockerenv
+    volumes:
+      - ./docker/db/:/docker-entrypoint-initdb.d/
+
+  redis:
+    image: redis:5.0-alpine
+    volumes:
+      - ./redis/data:/data
+
+  mailcatcher:
+    image: tophfr/mailcatcher
+    ports:
+      - 8084:80
+
+  app:
+      build:
+        context: .
+        dockerfile: docker/Dockerfile
+      env_file: docker/.dockerenv
+      volumes:
+        - ./project:/app
+      tty: true
+      links:
+        - db
+        - redis
+        - mailcatcher
+      depends_on:
+        - db
+        - redis
+        - mailcatcher
+      ports:
+        - "8004:8000"
+      command: ["make", "app"]
+
+  celery:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    env_file: docker/.dockerenv
+    image: osn-back_app
+    volumes:
+      - ./project:/app
+    links:
+      - db
+      - redis
+    depends_on:
+      - db
+      - redis
+    command: ["make", "celery"]
