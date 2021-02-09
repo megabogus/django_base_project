@@ -137,7 +137,7 @@ db_down:
         docker rm $DEMO_DB
       ; fi
 
-redis_up:
+redis_demo_up:
   stage: demo
   when: manual
   only:
@@ -149,7 +149,7 @@ redis_up:
         --name $DEMO_REDIS
         redis:5.0
 
-redis_down:
+redis_demo_down:
   stage: demo
   when: manual
   only:
@@ -163,7 +163,7 @@ redis_down:
       ; fi
 
 
-redis_up:
+redis_prod_up:
   stage: prod
   when: manual
   only:
@@ -175,7 +175,7 @@ redis_up:
         --name $PROD_REDIS
         redis:5.0
 
-redis_down:
+redis_prod_down:
   stage: prod
   when: manual
   only:
