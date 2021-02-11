@@ -5,6 +5,7 @@ FROM python:3.7-alpine
 RUN apk add --update build-base ca-certificates make g++ gcc libxslt-dev
 RUN apk add \
     libjpeg \
+    git \
     zlib \
     zlib-dev \
     libwebp \

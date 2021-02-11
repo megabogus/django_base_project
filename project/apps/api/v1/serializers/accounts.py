@@ -31,10 +31,10 @@ class UserFullSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             'id', 'username', 'full_name', 'first_name', 'middle_name', 'last_name', 'gender', 'phone', 'email',
-            'photo', 'change_password', 'birthday', 'last_login', 'date_joined'
+            'photo', 'change_password', 'birthday', 'last_login', 'date_joined',
         )
         read_only_fields = (
-            'id', 'full_name', 'phone', 'email', 'photo', 'last_login', 'date_joined'
+            'id', 'full_name', 'photo', 'last_login', 'date_joined'
         )
 
 

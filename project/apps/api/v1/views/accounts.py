@@ -6,7 +6,6 @@ from guardian.shortcuts import get_objects_for_user
 from rest_framework import permissions, serializers, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework_jwt.settings import api_settings
 
 from apps.accounts import defaults
 from apps.api.v1.permissions import ObjectPermissions
@@ -19,7 +18,6 @@ from apps.api.v1.tokens import EmailVerifyTokenGenerator
 from apps.api.v1.viewsets import ExtendedModelViewSet
 
 User = get_user_model()
-jwt_response_payload_handler = api_settings.JWT_RESPONSE_PAYLOAD_HANDLER
 
 
 class UserViewSet(ExtendedModelViewSet):
@@ -82,7 +80,7 @@ class UserViewSet(ExtendedModelViewSet):
 
     def get_queryset(self):
         users = get_objects_for_user(self.request.user, 'accounts.view_user', accept_global_perms=False)
-        return users.exclude(username='AnonymousUser')
+        return users.exclude(username='AnonymousUser').select_related().prefetch_related()
 
     @swagger_auto_schema(responses={200: serializers.Serializer, 400: BadRequestResponseSerializer})
     @action(methods=['get'], detail=False)
